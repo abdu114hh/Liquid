@@ -6,9 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.liquidapp.data.dao.HydrationDao
 import com.example.liquidapp.data.entity.DailyGoalEntity
 import com.example.liquidapp.data.entity.WaterLogEntity
+import com.example.liquidapp.data.repository.HydrationRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -50,6 +55,23 @@ abstract class LiquidDatabase : RoomDatabase() {
                     "liquid_database"
                 )
                 .fallbackToDestructiveMigration()
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                        // Initialize database with default data when created
+                        INSTANCE?.let { database ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                // Insert default daily goal
+                                val dao = database.hydrationDao()
+                                val defaultGoal = DailyGoalEntity(
+                                    start_date = LocalDate.now(),
+                                    goal_oz = HydrationRepository.DEFAULT_GOAL_OZ
+                                )
+                                dao.insertGoal(defaultGoal)
+                            }
+                        }
+                    }
+                })
                 .build()
                 INSTANCE = instance
                 instance

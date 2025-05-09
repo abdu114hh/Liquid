@@ -2,6 +2,7 @@ package com.example.liquidapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
@@ -13,6 +14,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+private const val TAG = "MainActivity"
+
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     
@@ -22,78 +25,104 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Set up view binding
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        
-        // Set up UI observers
-        setUpObservers()
-        
-        // Set up click listeners
-        setUpClickListeners()
-        
-        // Update the current date and time
-        updateDateTime()
+        try {
+            // Set up view binding
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            
+            // Set up UI observers
+            setUpObservers()
+            
+            // Set up click listeners
+            setUpClickListeners()
+            
+            // Update the current date and time
+            updateDateTime()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onCreate", e)
+            // Show a toast to make the error visible
+            android.widget.Toast.makeText(
+                this,
+                "Error: ${e.message}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
     }
     
     private fun setUpObservers() {
-        // Observe progress changes
-        viewModel.progressPercentage.observe(this, Observer { progress ->
-            binding.progressBar.progress = progress
-        })
-        
-        // Observe cup count changes
-        viewModel.todayCupCount.observe(this, Observer { count ->
-            binding.glassCount.text = count.toString()
-        })
-        
-        // Observe date changes
-        viewModel.formattedDate.observe(this, Observer { formattedDate ->
-            binding.dateTime.text = formattedDate
-        })
+        try {
+            // Observe progress changes
+            viewModel.progressPercentage.observe(this, Observer { progress ->
+                binding.progressBar.progress = progress
+            })
+            
+            // Observe cup count changes
+            viewModel.todayCupCount.observe(this, Observer { count ->
+                binding.glassCount.text = count.toString()
+            })
+            
+            // Observe date changes
+            viewModel.formattedDate.observe(this, Observer { formattedDate ->
+                binding.dateTime.text = formattedDate
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in setUpObservers", e)
+        }
     }
     
     private fun setUpClickListeners() {
-        // Quarter cup button
-        binding.btnQuarter.setOnClickListener {
-            viewModel.addQuarterCup()
-        }
-        
-        // Minus button (remove cup)
-        binding.btnMinus.setOnClickListener {
-            viewModel.removeFullCup()
-        }
-        
-        // Add a plus button to the UI since the current UI doesn't have it but we need it
-        binding.menuIcon.setOnClickListener {
-            showMenu()
+        try {
+            // Quarter cup button
+            binding.btnQuarter.setOnClickListener {
+                viewModel.addQuarterCup()
+            }
+            
+            // Minus button (remove cup)
+            binding.btnMinus.setOnClickListener {
+                viewModel.removeFullCup()
+            }
+            
+            // Add a plus button to the UI since the current UI doesn't have it but we need it
+            binding.menuIcon.setOnClickListener {
+                showMenu()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in setUpClickListeners", e)
         }
     }
     
     private fun updateDateTime() {
-        val now = LocalDateTime.now()
-        val formatter = DateTimeFormatter.ofPattern("E, MMM d, yyyy • h:mm a")
-        binding.dateTime.text = now.format(formatter)
+        try {
+            val now = LocalDateTime.now()
+            val formatter = DateTimeFormatter.ofPattern("E, MMM d, yyyy • h:mm a")
+            binding.dateTime.text = now.format(formatter)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in updateDateTime", e)
+        }
     }
     
     private fun showMenu() {
-        val popupMenu = android.widget.PopupMenu(this, binding.menuIcon)
-        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
-        
-        popupMenu.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.menu_history -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
-                    true
+        try {
+            val popupMenu = android.widget.PopupMenu(this, binding.menuIcon)
+            popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
+            
+            popupMenu.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.menu_history -> {
+                        startActivity(Intent(this, HistoryActivity::class.java))
+                        true
+                    }
+                    R.id.menu_settings -> {
+                        startActivity(Intent(this, SettingsActivity::class.java))
+                        true
+                    }
+                    else -> false
                 }
-                R.id.menu_settings -> {
-                    startActivity(Intent(this, SettingsActivity::class.java))
-                    true
-                }
-                else -> false
             }
+            
+            popupMenu.show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in showMenu", e)
         }
-        
-        popupMenu.show()
     }
 }
