@@ -19,6 +19,9 @@ import javax.inject.Inject
 import kotlin.text.format
 import kotlin.text.map
 import androidx.lifecycle.map
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.map
+
 
 private const val TAG = "MainViewModel"
 
@@ -38,8 +41,8 @@ class MainViewModel @Inject constructor(
     val error: LiveData<String?> = _error
 
     // Format the current date for display using the map extension function
-    val formattedDate: LiveData<String> = currentDate.asLiveData().let { liveDate ->
-        androidx.lifecycle.map(liveDate) { date ->
+    val formattedDate: LiveData<String> =
+        currentDate.asLiveData().map { date ->
             try {
                 val formatter = DateTimeFormatter.ofPattern("E, MMM d, yyyy")
                 date.format(formatter)
@@ -48,7 +51,6 @@ class MainViewModel @Inject constructor(
                 "Today"
             }
         }
-    }
 
     // Get the total cups consumed today
     val todayCupCount: LiveData<Int> = repository.getTotalCupsForDate(LocalDate.now())
