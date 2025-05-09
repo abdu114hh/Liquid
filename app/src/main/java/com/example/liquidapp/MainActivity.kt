@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.example.liquidapp.databinding.ActivityMainBinding
 import com.example.liquidapp.ui.history.HistoryActivity
@@ -54,6 +55,17 @@ class MainActivity : AppCompatActivity() {
             // Observe progress changes
             viewModel.progressPercentage.observe(this, Observer { progress ->
                 binding.progressBar.progress = progress
+                
+                // Color the progress bar based on completion
+                val colorResId = when {
+                    progress >= 100 -> R.color.colorSuccess
+                    progress >= 75 -> R.color.accent
+                    progress >= 50 -> R.color.colorWarning
+                    else -> R.color.colorDanger
+                }
+                
+                val color = ContextCompat.getColor(this, colorResId)
+                binding.progressBar.progressTintList = android.content.res.ColorStateList.valueOf(color)
             })
             
             // Observe cup count changes
