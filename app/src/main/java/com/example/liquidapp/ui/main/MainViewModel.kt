@@ -20,7 +20,6 @@ import kotlin.text.format
 import kotlin.text.map
 import androidx.lifecycle.map
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.map
 
 
 private const val TAG = "MainViewModel"
@@ -53,11 +52,15 @@ class MainViewModel @Inject constructor(
         }
 
     // Get the total cups consumed today
-    val todayCupCount: LiveData<Int> = repository.getTotalCupsForDate(LocalDate.now())
+    val todayCupCount: LiveData<String> = repository.getTotalCupsForDate(LocalDate.now())
         .catch { e ->
             Log.e(TAG, "Error getting cup count", e)
             _error.postValue("Failed to load cup count: ${e.message}")
-            emit(0)
+            emit(0f)
+        }
+        .map { count ->
+            // Format to 2 decimal places, but remove trailing zeros
+            String.format("%.2f", count).replace(Regex("\\.?0*$"), "")
         }
         .asLiveData()
 
