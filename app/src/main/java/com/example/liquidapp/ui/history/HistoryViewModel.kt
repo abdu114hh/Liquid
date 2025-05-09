@@ -70,7 +70,7 @@ class HistoryViewModel @Inject constructor(
 data class HistoryItem(
     val date: LocalDate,
     val totalOz: Int,
-    val cups: Int,
+    val cups: Float,
     val percentageComplete: Int,
     val goalOz: Int
 ) 

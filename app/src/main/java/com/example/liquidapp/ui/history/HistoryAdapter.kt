@@ -37,8 +37,15 @@ class HistoryAdapter : ListAdapter<HistoryItem, HistoryAdapter.HistoryViewHolder
             // Format the date
             binding.dayText.text = dateFormatter.format(item.date)
             
+            // Format cups to show decimal places only when needed
+            val formattedCups = if (item.cups == item.cups.toInt().toFloat()) {
+                item.cups.toInt().toString()
+            } else {
+                String.format("%.2f", item.cups).replace(Regex("\\.?0*$"), "")
+            }
+            
             // Set the consumption details
-            binding.consumptionText.text = "${item.totalOz} oz (${item.cups} cups)"
+            binding.consumptionText.text = "${item.totalOz} oz ($formattedCups cups)"
             
             // Set the goal completion text
             binding.goalText.text = "${item.percentageComplete}% of ${item.goalOz} oz goal"
