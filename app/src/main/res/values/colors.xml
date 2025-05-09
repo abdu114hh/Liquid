@@ -1,0 +1,5 @@
+<resources>
+    <color name="backgroundDark">#121212</color>
+    <color name="containerDark">#1E1E1E</color>
+    <color name="accent">#FFEB3B</color>
+</resources>

@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">LiquidApp</string>
+
+    <!-- UI text resources -->
+    <string name="date_text">Tuesday 11 June</string>
+    <string name="time_text">2:31</string>
+    <string name="mood_icon">Mood icon</string>
+    <string name="add_glass_of_water">Add a glass of water</string>
+    <string name="initial_water_count">0</string>
+    <string name="menu_icon">Menu Icon</string>
+    <string name="water_glass_icon">Water </string>
+</resources>
