@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.liquidapp.data.repository.HydrationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -28,7 +30,9 @@ class SettingsViewModel @Inject constructor(
     fun getCurrentDailyGoal(): Int {
         // This is a simplification - in a real app we would use Flow/LiveData,
         // but for UI purposes we provide a synchronous version
-        return repository.getActiveGoal(LocalDate.now()).value ?: HydrationRepository.DEFAULT_GOAL_OZ
+        return runBlocking {
+            repository.getActiveGoal(LocalDate.now()).first()
+        }
     }
     
     // Set a new daily goal in ounces.
