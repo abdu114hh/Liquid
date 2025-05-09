@@ -77,12 +77,11 @@
 
         <ImageView
             android:id="@+id/glassIcon"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_gravity="center"
             android:contentDescription="Water glass icon"
-            android:src="@drawable/ic_water_glass"
-            app:tint="@color/accent" />
+            android:src="@drawable/ic_water_glass_colored" />
     </FrameLayout>
 
     <ProgressBar
