@@ -112,7 +112,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="20dp"
-            android:paddingVertical="32dp"> <!-- Increased vertical padding here -->
+            android:paddingVertical="32dp"> 
 
             <Button
                 android:id="@+id/btnQuarter"
@@ -156,7 +156,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Divider line removed -->
+
 
     <TextView
         android:id="@+id/tipText"

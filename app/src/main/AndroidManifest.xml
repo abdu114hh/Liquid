@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-
+        android:name=".LiquidApplication"
         android:theme="@style/AppTheme"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -13,17 +13,58 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         tools:targetApi="31">
+        
+        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.LiquidApp">
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Settings Activity -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:label="Settings"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme" />
+            
+        <!-- History Activity -->
+        <activity
+            android:name=".ui.history.HistoryActivity"
+            android:label="History"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme" />
+            
+        <!-- Widget Provider -->
+        <receiver
+            android:name=".widget.LiquidWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.liquidapp.widget.ACTION_ADD" />
+                <action android:name="com.example.liquidapp.widget.ACTION_MINUS" />
+                <action android:name="com.example.liquidapp.widget.ACTION_QUARTER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/liquid_widget_info" />
+        </receiver>
+        
+        <!-- WorkManager Initialization -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>
