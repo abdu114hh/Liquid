@@ -13,41 +13,41 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.text.format
+import kotlin.text.map
+import androidx.lifecycle.map
 
-// ViewModel for the main hydration tracking screen.
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: HydrationRepository
 ) : ViewModel() {
-    
+
     private val _currentDate = MutableStateFlow(LocalDate.now())
     val currentDate: StateFlow<LocalDate> = _currentDate.asStateFlow()
-    
-    // Format the current date for display
-    val formattedDate: LiveData<String> = currentDate.asLiveData().let { liveDate ->
-        androidx.lifecycle.map(liveDate) { date ->
-            val formatter = DateTimeFormatter.ofPattern("E, MMM d, yyyy")
-            date.format(formatter)
-        }
+
+    // Format the current date for display using the map extension function
+    val formattedDate: LiveData<String> = currentDate.asLiveData().map { date ->
+        val formatter = DateTimeFormatter.ofPattern("E, MMM d, yyyy")
+        date.format(formatter)
     }
-    
+
     // Get the total cups consumed today
     val todayCupCount: LiveData<Int> = repository.getTotalCupsForDate(LocalDate.now()).asLiveData()
-    
+
     // Get the progress percentage for today
     val progressPercentage: LiveData<Int> = repository.getDailyProgressPercentage(LocalDate.now()).asLiveData()
-    
+
     // Get the current cup size in ounces
     val cupSizeOz: Int
         get() = repository.getCupSize()
-    
+
     // Add a full cup of water.
     fun addFullCup() {
         viewModelScope.launch {
             repository.addWaterLog(LocalDate.now(), repository.getCupSize())
         }
     }
-    
+
     // Add a quarter cup of water.
     fun addQuarterCup() {
         viewModelScope.launch {
@@ -57,12 +57,12 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-    
-     // Remove a full cup of water
+
+    // Remove a full cup of water
     fun removeFullCup() {
         viewModelScope.launch {
             // Add a negative amount to decrease the total
             repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
         }
     }
-} 
+}
