@@ -1,7 +1,7 @@
 <resources>
     <color name="backgroundDark">#121212</color>
     <color name="containerDark">#1E1E1E</color>
-    <color name="accent">#FFEB3B</color>
+    <color name="accent">#4285F4</color>
     <color name="colorSuccess">#4CAF50</color>
     <color name="colorWarning">#FF9800</color>
     <color name="colorDanger">#F44336</color>

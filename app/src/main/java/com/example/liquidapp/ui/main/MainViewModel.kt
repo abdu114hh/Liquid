@@ -40,6 +40,9 @@ class MainViewModel @Inject constructor(
     // Error handling
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
+    
+    // Track the last increment type (full cup or quarter cup)
+    private var lastIncrementType = IncrementType.FULL
 
     // Format the current date for display using the map extension function
     val formattedDate: LiveData<String> =
@@ -84,6 +87,7 @@ class MainViewModel @Inject constructor(
     fun addFullCup() {
         viewModelScope.launch {
             try {
+                lastIncrementType = IncrementType.FULL
                 repository.addWaterLog(LocalDate.now(), repository.getCupSize())
             } catch (e: Exception) {
                 Log.e(TAG, "Error adding full cup", e)
@@ -96,6 +100,7 @@ class MainViewModel @Inject constructor(
     fun addQuarterCup() {
         viewModelScope.launch {
             try {
+                lastIncrementType = IncrementType.QUARTER
                 val quarterAmount = repository.getCupSize() / 4
                 if (quarterAmount > 0) {
                     repository.addWaterLog(LocalDate.now(), quarterAmount)
@@ -107,23 +112,32 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // Remove a full cup of water
-    fun removeFullCup() {
+    // Remove water based on the last increment type
+    fun removeLastIncrement() {
         viewModelScope.launch {
             try {
-                // Get current ounces first
                 val currentOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
                 
+                val amountToRemove = when (lastIncrementType) {
+                    IncrementType.FULL -> cupSize
+                    IncrementType.QUARTER -> cupSize / 4
+                }
+                
                 // Only remove if we won't go below zero
-                if (currentOunces >= cupSize) {
-                    // Add a negative amount to decrease the total
-                    repository.addWaterLog(LocalDate.now(), -cupSize)
+                if (currentOunces >= amountToRemove) {
+                    repository.addWaterLog(LocalDate.now(), -amountToRemove)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error removing cup", e)
+                Log.e(TAG, "Error removing increment", e)
                 _error.postValue("Failed to remove water: ${e.message}")
             }
         }
+    }
+    
+    // Enum to track the last increment type
+    private enum class IncrementType {
+        FULL,
+        QUARTER
     }
 }

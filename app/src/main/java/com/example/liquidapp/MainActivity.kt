@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
             
             // Minus button (remove cup)
             binding.btnMinus.setOnClickListener {
-                viewModel.removeFullCup()
+                viewModel.removeLastIncrement()
             }
             
             // Water glass button (add full cup)
