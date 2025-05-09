@@ -118,10 +118,18 @@ class MainViewModel @Inject constructor(
             try {
                 val currentOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
+                val currentCups = currentOunces.toFloat() / cupSize.toFloat()
                 
-                val amountToRemove = when (lastIncrementType) {
-                    IncrementType.FULL -> cupSize
-                    IncrementType.QUARTER -> cupSize / 4
+                // Determine amount to remove based on current cup count
+                val amountToRemove = if (currentCups == currentCups.toInt().toFloat()) {
+                    // At a whole number, always remove a full cup
+                    cupSize
+                } else {
+                    // At a fractional amount, remove based on last increment type
+                    when (lastIncrementType) {
+                        IncrementType.FULL -> cupSize
+                        IncrementType.QUARTER -> cupSize / 4
+                    }
                 }
                 
                 // Only remove if we won't go below zero
