@@ -23,8 +23,8 @@
 
     <ImageButton
         android:id="@+id/menuIcon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
@@ -64,7 +64,6 @@
         android:layout_marginTop="8dp"
         android:clickable="true"
         android:focusable="true"
-        android:foreground="@drawable/circle_ripple"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/guidelineTop">
@@ -84,6 +83,14 @@
             android:contentDescription="Water glass icon"
             android:src="@drawable/ic_water_glass"
             app:tint="@color/accent" />
+            
+        <ImageView
+            android:layout_width="260dp"
+            android:layout_height="260dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/circle_ripple" />
     </FrameLayout>
 
     <ProgressBar

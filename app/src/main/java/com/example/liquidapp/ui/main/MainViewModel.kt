@@ -20,6 +20,7 @@ import kotlin.text.format
 import kotlin.text.map
 import androidx.lifecycle.map
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.map
 
 
 private const val TAG = "MainViewModel"
@@ -52,15 +53,11 @@ class MainViewModel @Inject constructor(
         }
 
     // Get the total cups consumed today
-    val todayCupCount: LiveData<String> = repository.getTotalCupsForDate(LocalDate.now())
+    val todayCupCount: LiveData<Float> = repository.getTotalCupsForDate(LocalDate.now())
         .catch { e ->
             Log.e(TAG, "Error getting cup count", e)
             _error.postValue("Failed to load cup count: ${e.message}")
             emit(0f)
-        }
-        .map { count ->
-            // Format to 2 decimal places, but remove trailing zeros
-            String.format("%.2f", count).replace(Regex("\\.?0*$"), "")
         }
         .asLiveData()
 
@@ -113,8 +110,15 @@ class MainViewModel @Inject constructor(
     fun removeFullCup() {
         viewModelScope.launch {
             try {
-                // Add a negative amount to decrease the total
-                repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
+                // Get current ounces first
+                val currentOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
+                val cupSize = repository.getCupSize()
+                
+                // Only remove if we won't go below zero
+                if (currentOunces >= cupSize) {
+                    // Add a negative amount to decrease the total
+                    repository.addWaterLog(LocalDate.now(), -cupSize)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error removing cup", e)
                 _error.postValue("Failed to remove water: ${e.message}")

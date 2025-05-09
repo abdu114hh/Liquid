@@ -1,10 +1,8 @@
 package com.example.liquidapp
 
 import android.content.Intent
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
-import android.view.HapticFeedbackConstants
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
@@ -23,7 +21,6 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
-    private var mediaPlayer: MediaPlayer? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,9 +29,6 @@ class MainActivity : AppCompatActivity() {
             // Set up view binding
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
-            
-            // Initialize sound
-            mediaPlayer = MediaPlayer.create(this, android.R.raw.keyboard_standard_click)
             
             // Set up UI observers
             setUpObservers()
@@ -64,7 +58,13 @@ class MainActivity : AppCompatActivity() {
             
             // Observe cup count changes
             viewModel.todayCupCount.observe(this, Observer { count ->
-                binding.glassCount.text = count
+                // Format to show decimal places only when needed (e.g., 5.0 shows as 5, but 5.25 shows as 5.25)
+                val formattedCount = if (count == count.toInt().toFloat()) {
+                    count.toInt().toString()
+                } else {
+                    String.format("%.2f", count).replace(Regex("\\.?0*$"), "")
+                }
+                binding.glassCount.text = formattedCount
             })
             
             // Observe date changes
@@ -80,40 +80,25 @@ class MainActivity : AppCompatActivity() {
         try {
             // Quarter cup button
             binding.btnQuarter.setOnClickListener {
-                binding.btnQuarter.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                playButtonSound()
                 viewModel.addQuarterCup()
             }
             
             // Minus button (remove cup)
             binding.btnMinus.setOnClickListener {
-                binding.btnMinus.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                playButtonSound()
                 viewModel.removeFullCup()
             }
             
             // Water glass button (add full cup)
             binding.circleContainer.setOnClickListener {
-                binding.circleContainer.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                playButtonSound()
                 viewModel.addFullCup()
             }
             
-            // Menu icon
+            // Add a plus button to the UI since the current UI doesn't have it but we need it
             binding.menuIcon.setOnClickListener {
-                binding.menuIcon.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 showMenu()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in setUpClickListeners", e)
-        }
-    }
-    
-    private fun playButtonSound() {
-        try {
-            mediaPlayer?.start()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error playing sound", e)
         }
     }
     
@@ -150,11 +135,5 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error in showMenu", e)
         }
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaPlayer?.release()
-        mediaPlayer = null
     }
 }

@@ -9,13 +9,11 @@ import com.example.liquidapp.util.PreferenceManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.max
 
 private const val TAG = "HydrationRepository"
 
@@ -36,17 +34,6 @@ class HydrationRepository @Inject constructor(
     // Water log operations
     suspend fun addWaterLog(date: LocalDate, amountOz: Int) {
         try {
-            // Check if adding a negative amount would result in negative total
-            if (amountOz < 0) {
-                val currentTotal = hydrationDao.sumByDate(date).map { it ?: 0 }.first()
-                if (currentTotal + amountOz < 0) {
-                    // Just set to zero instead of going negative
-                    val logEntry = WaterLogEntity(date = date, amount_oz = -currentTotal)
-                    hydrationDao.insertLog(logEntry)
-                    return
-                }
-            }
-            
             val logEntry = WaterLogEntity(date = date, amount_oz = amountOz)
             hydrationDao.insertLog(logEntry)
         } catch (e: Exception) {
@@ -75,11 +62,7 @@ class HydrationRepository @Inject constructor(
     // Get total cups (logged ounces divided by cup size)
     fun getTotalCupsForDate(date: LocalDate): Flow<Float> {
         return hydrationDao.sumByDate(date)
-            .map { 
-                val totalOz = it ?: 0
-                val cupSize = getCupSize().coerceAtLeast(1)
-                totalOz.toFloat() / cupSize
-            }
+            .map { (it ?: 0).toFloat() / getCupSize().coerceAtLeast(1).toFloat() }
             .catch { e ->
                 Log.e(TAG, "Error getting total cups", e)
                 emit(0f)

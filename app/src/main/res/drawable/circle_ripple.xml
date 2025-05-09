@@ -6,4 +6,5 @@
             <solid android:color="#FFFFFF" />
         </shape>
     </item>
+    <item android:drawable="@android:color/transparent" />
 </ripple> 
