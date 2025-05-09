@@ -10,20 +10,40 @@ import android.widget.RemoteViews
 import com.example.liquidapp.MainActivity
 import com.example.liquidapp.R
 import com.example.liquidapp.data.repository.HydrationRepository
-import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import javax.inject.Inject
 
-// Implementation of App Widget functionality for the LIQUID app.
-@AndroidEntryPoint
+/**
+ * Implementation of App Widget functionality for the LIQUID app.
+ */
 class LiquidWidgetProvider : AppWidgetProvider() {
     
-    @Inject
-    lateinit var repository: HydrationRepository
+    /**
+     * Hilt entry point for accessing dependencies from a non-Android class
+     */
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface HydrationRepositoryEntryPoint {
+        fun hydrationRepository(): HydrationRepository
+    }
+    
+    /**
+     * Get the repository instance using EntryPointAccessors
+     */
+    private fun getRepository(context: Context): HydrationRepository {
+        val hiltEntryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            HydrationRepositoryEntryPoint::class.java
+        )
+        return hiltEntryPoint.hydrationRepository()
+    }
     
     companion object {
         // Intent actions for widget buttons
@@ -31,7 +51,9 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         const val ACTION_MINUS = "com.example.liquidapp.widget.ACTION_MINUS"
         const val ACTION_QUARTER = "com.example.liquidapp.widget.ACTION_QUARTER"
         
-        // Update all active widgets.
+        /**
+         * Update all active widgets.
+         */
         fun updateAllWidgets(context: Context) {
             val intent = Intent(context, LiquidWidgetProvider::class.java)
             intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
@@ -64,6 +86,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     private fun handleAddAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
+            val repository = getRepository(context)
             repository.addWaterLog(LocalDate.now(), repository.getCupSize())
             updateAllWidgets(context)
         }
@@ -71,6 +94,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     private fun handleMinusAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
+            val repository = getRepository(context)
             repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
             updateAllWidgets(context)
         }
@@ -78,6 +102,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     private fun handleQuarterAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
+            val repository = getRepository(context)
             val quarterAmount = repository.getCupSize() / 4
             if (quarterAmount > 0) {
                 repository.addWaterLog(LocalDate.now(), quarterAmount)
@@ -150,6 +175,9 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     private fun updateWidgetProgress(context: Context, views: RemoteViews, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Get repository
+                val repository = getRepository(context)
+                
                 // Get current date progress
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
                 
