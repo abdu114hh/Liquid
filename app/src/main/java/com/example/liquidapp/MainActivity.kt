@@ -82,6 +82,11 @@ class MainActivity : AppCompatActivity() {
                 viewModel.removeFullCup()
             }
             
+            // Water glass button (add full cup)
+            binding.circleContainer.setOnClickListener {
+                viewModel.addFullCup()
+            }
+            
             // Add a plus button to the UI since the current UI doesn't have it but we need it
             binding.menuIcon.setOnClickListener {
                 showMenu()
