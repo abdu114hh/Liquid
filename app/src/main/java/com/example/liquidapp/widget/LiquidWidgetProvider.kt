@@ -270,9 +270,8 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
                 val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
-                val goal = repository.getGoalOunces()
                 
-                Log.d(TAG, "Widget data: progress=$progress%, total=$totalAmount oz, cup=$cupSize oz, goal=$goal oz")
+                Log.d(TAG, "Widget data: progress=$progress%, total=$totalAmount oz, cup=$cupSize oz")
                 
                 // Update UI elements with the fetched data
                 views.setProgressBar(R.id.widget_progress, 100, progress.coerceIn(0, 100), false)
