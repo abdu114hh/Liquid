@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import com.example.liquidapp.MainActivity
 import com.example.liquidapp.R
@@ -19,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+private const val TAG = "LiquidWidgetProvider"
 
 /**
  * Implementation of App Widget functionality for the LIQUID app.
@@ -37,12 +40,17 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     /**
      * Get the repository instance using EntryPointAccessors
      */
-    private fun getRepository(context: Context): HydrationRepository {
-        val hiltEntryPoint = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            HydrationRepositoryEntryPoint::class.java
-        )
-        return hiltEntryPoint.hydrationRepository()
+    private fun getRepository(context: Context): HydrationRepository? {
+        return try {
+            val hiltEntryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                HydrationRepositoryEntryPoint::class.java
+            )
+            hiltEntryPoint.hydrationRepository()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting repository", e)
+            null
+        }
     }
     
     companion object {
@@ -55,128 +63,160 @@ class LiquidWidgetProvider : AppWidgetProvider() {
          * Update all active widgets.
          */
         fun updateAllWidgets(context: Context) {
-            val intent = Intent(context, LiquidWidgetProvider::class.java)
-            intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            
-            val widgetManager = AppWidgetManager.getInstance(context)
-            val widgetIds = widgetManager.getAppWidgetIds(ComponentName(context, LiquidWidgetProvider::class.java))
-            
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
-            context.sendBroadcast(intent)
+            try {
+                val intent = Intent(context, LiquidWidgetProvider::class.java)
+                intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                
+                val widgetManager = AppWidgetManager.getInstance(context)
+                val widgetIds = widgetManager.getAppWidgetIds(ComponentName(context, LiquidWidgetProvider::class.java))
+                
+                intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+                context.sendBroadcast(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating widgets", e)
+            }
         }
     }
     
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // Update each widget
-        for (widgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, widgetId)
+        try {
+            // Update each widget
+            for (widgetId in appWidgetIds) {
+                updateAppWidget(context, appWidgetManager, widgetId)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onUpdate", e)
         }
     }
     
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        
-        // Handle custom actions
-        when (intent.action) {
-            ACTION_ADD -> handleAddAction(context)
-            ACTION_MINUS -> handleMinusAction(context)
-            ACTION_QUARTER -> handleQuarterAction(context)
+        try {
+            super.onReceive(context, intent)
+            
+            // Handle custom actions
+            when (intent.action) {
+                ACTION_ADD -> handleAddAction(context)
+                ACTION_MINUS -> handleMinusAction(context)
+                ACTION_QUARTER -> handleQuarterAction(context)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onReceive", e)
         }
     }
     
     private fun handleAddAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
-            val repository = getRepository(context)
-            repository.addWaterLog(LocalDate.now(), repository.getCupSize())
-            updateAllWidgets(context)
+            try {
+                val repository = getRepository(context) ?: return@launch
+                repository.addWaterLog(LocalDate.now(), repository.getCupSize())
+                updateAllWidgets(context)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in handleAddAction", e)
+            }
         }
     }
     
     private fun handleMinusAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
-            val repository = getRepository(context)
-            repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
-            updateAllWidgets(context)
+            try {
+                val repository = getRepository(context) ?: return@launch
+                repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
+                updateAllWidgets(context)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in handleMinusAction", e)
+            }
         }
     }
     
     private fun handleQuarterAction(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
-            val repository = getRepository(context)
-            val quarterAmount = repository.getCupSize() / 4
-            if (quarterAmount > 0) {
-                repository.addWaterLog(LocalDate.now(), quarterAmount)
-                updateAllWidgets(context)
+            try {
+                val repository = getRepository(context) ?: return@launch
+                val quarterAmount = repository.getCupSize() / 4
+                if (quarterAmount > 0) {
+                    repository.addWaterLog(LocalDate.now(), quarterAmount)
+                    updateAllWidgets(context)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in handleQuarterAction", e)
             }
         }
     }
     
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        // Create remote views
-        val views = RemoteViews(context.packageName, R.layout.widget_liquid)
-        
-        // Set up button click intents
-        setUpWidgetButtons(context, views)
-        
-        // Update progress
-        updateWidgetProgress(context, views, appWidgetManager, appWidgetId)
-        
-        // Launch main activity when the widget is clicked
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_progress, pendingIntent)
-        
-        // Update the widget
-        appWidgetManager.updateAppWidget(appWidgetId, views)
+        try {
+            // Create remote views
+            val views = RemoteViews(context.packageName, R.layout.widget_liquid)
+            
+            // Set up button click intents
+            setUpWidgetButtons(context, views)
+            
+            // Update progress
+            updateWidgetProgress(context, views, appWidgetManager, appWidgetId)
+            
+            // Launch main activity when the widget is clicked
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_progress, pendingIntent)
+            
+            // Update the widget
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in updateAppWidget", e)
+        }
     }
     
     private fun setUpWidgetButtons(context: Context, views: RemoteViews) {
-        // Add button
-        val addIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
-            action = ACTION_ADD
+        try {
+            // Add button
+            val addIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
+                action = ACTION_ADD
+            }
+            val addPendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                addIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_increase, addPendingIntent)
+            
+            // Minus button
+            val minusIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
+                action = ACTION_MINUS
+            }
+            val minusPendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                minusIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_decrease, minusPendingIntent)
+            
+            // Quarter button
+            val quarterIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
+                action = ACTION_QUARTER
+            }
+            val quarterPendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                quarterIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_quarter, quarterPendingIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in setUpWidgetButtons", e)
         }
-        val addPendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            addIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_increase, addPendingIntent)
-        
-        // Minus button
-        val minusIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
-            action = ACTION_MINUS
-        }
-        val minusPendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            minusIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_decrease, minusPendingIntent)
-        
-        // Quarter button
-        val quarterIntent = Intent(context, LiquidWidgetProvider::class.java).apply {
-            action = ACTION_QUARTER
-        }
-        val quarterPendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            quarterIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_quarter, quarterPendingIntent)
     }
     
     private fun updateWidgetProgress(context: Context, views: RemoteViews, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Get repository
-                val repository = getRepository(context)
+                val repository = getRepository(context) ?: return@launch
                 
                 // Get current date progress
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
@@ -189,7 +229,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error in updateWidgetProgress", e)
             }
         }
     }
