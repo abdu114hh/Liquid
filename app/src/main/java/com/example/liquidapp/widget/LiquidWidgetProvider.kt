@@ -6,8 +6,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.util.Log
 import android.widget.RemoteViews
 import com.example.liquidapp.MainActivity
@@ -23,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 private const val TAG = "LiquidWidgetProvider"
 
@@ -30,6 +29,15 @@ private const val TAG = "LiquidWidgetProvider"
  * Implementation of App Widget functionality for the LIQUID app.
  */
 class LiquidWidgetProvider : AppWidgetProvider() {
+    
+    // Enum to track the last increment type
+    private enum class IncrementType {
+        FULL,
+        QUARTER
+    }
+    
+    // Track the last increment type
+    private var lastIncrementType = IncrementType.FULL
     
     /**
      * Hilt entry point for accessing dependencies from a non-Android class
@@ -111,11 +119,9 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val repository = getRepository(context) ?: return@launch
-                val cupSize = repository.getCupSize()
-                if (cupSize > 0) {
-                    repository.addWaterLog(LocalDate.now(), cupSize)
-                    updateAllWidgets(context)
-                }
+                lastIncrementType = IncrementType.FULL
+                repository.addWaterLog(LocalDate.now(), repository.getCupSize())
+                updateAllWidgets(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in handleAddAction", e)
             }
@@ -126,22 +132,30 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val repository = getRepository(context) ?: return@launch
-                val cupSize = repository.getCupSize()
-                if (cupSize <= 0) return@launch // Safety check
-
+                
+                // Get current amount and determine what to remove
                 val currentOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
-
-                if (currentOunces > 0) {
-                    val amountToLog = -cupSize
-                    // If removing a full cup makes it negative, only remove what's available.
-                    if (currentOunces + amountToLog < 0) {
-                        repository.addWaterLog(LocalDate.now(), -currentOunces)
-                    } else {
-                        repository.addWaterLog(LocalDate.now(), amountToLog)
+                val cupSize = repository.getCupSize()
+                val currentCups = currentOunces.toFloat() / cupSize.toFloat()
+                
+                // Determine amount to remove based on current cup count
+                val amountToRemove = if (currentCups == currentCups.toInt().toFloat()) {
+                    // At a whole number, always remove a full cup
+                    cupSize
+                } else {
+                    // At a fractional amount, remove based on last increment type
+                    when (lastIncrementType) {
+                        IncrementType.FULL -> cupSize
+                        IncrementType.QUARTER -> cupSize / 4
                     }
-                    updateAllWidgets(context)
                 }
-                // If currentOunces is 0, do nothing.
+                
+                // Only remove if we won't go below zero
+                if (currentOunces >= amountToRemove) {
+                    repository.addWaterLog(LocalDate.now(), -amountToRemove)
+                }
+                
+                updateAllWidgets(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in handleMinusAction", e)
             }
@@ -152,13 +166,11 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val repository = getRepository(context) ?: return@launch
-                val cupSize = repository.getCupSize()
-                if (cupSize > 0) {
-                    val quarterAmount = cupSize / 4
-                    if (quarterAmount > 0) {
-                        repository.addWaterLog(LocalDate.now(), quarterAmount)
-                        updateAllWidgets(context)
-                    }
+                lastIncrementType = IncrementType.QUARTER
+                val quarterAmount = repository.getCupSize() / 4
+                if (quarterAmount > 0) {
+                    repository.addWaterLog(LocalDate.now(), quarterAmount)
+                    updateAllWidgets(context)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in handleQuarterAction", e)
@@ -241,28 +253,28 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 val repository = getRepository(context) ?: return@runBlocking
                 
                 // Get current date progress
-                val progressPercentage = repository.getDailyProgressPercentage(LocalDate.now()).first()
-                views.setProgressBar(R.id.widget_progress, 100, progressPercentage, false)
+                val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
+                views.setProgressBar(R.id.widget_progress, 100, progress, false)
                 
-                // Set progress bar color based on percentage
-                val progressBarColor = when {
-                    progressPercentage < 35 -> Color.RED
-                    progressPercentage < 70 -> Color.parseColor("#FFA500") // Orange
-                    else -> Color.GREEN
-                }
-                views.setColorStateList(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(progressBarColor))
-
-                // Get drink count
-                val totalAmountOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
+                // Get drink count with decimal precision
+                val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
-                val drinkCountFloat = if (cupSize > 0) totalAmountOunces.toFloat() / cupSize.toFloat() else 0.0f
-                views.setTextViewText(R.id.widget_count, String.format("%.1f", drinkCountFloat))
+                
+                // Calculate drink count with 1 decimal place precision
+                val drinkCount = if (cupSize > 0) {
+                    val count = totalAmount.toFloat() / cupSize.toFloat()
+                    // Format to 1 decimal place
+                    String.format("%.1f", count)
+                } else {
+                    "0.0"
+                }
+                
+                views.setTextViewText(R.id.widget_count, drinkCount)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateWidgetDataSync", e)
             // Set default values if there's an error
             views.setProgressBar(R.id.widget_progress, 100, 0, false)
-            views.setColorStateList(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(Color.GRAY))
             views.setTextViewText(R.id.widget_count, "0.0")
         }
     }
