@@ -6,10 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.util.Log
 import android.widget.RemoteViews
-import androidx.core.content.ContextCompat
 import com.example.liquidapp.MainActivity
 import com.example.liquidapp.R
 import com.example.liquidapp.data.repository.HydrationRepository
@@ -23,7 +21,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
-import kotlin.math.max
 
 private const val TAG = "LiquidWidgetProvider"
 
@@ -124,18 +121,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val repository = getRepository(context) ?: return@launch
-                
-                // Get current amount to prevent going negative
-                val currentAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
-                val cupSize = repository.getCupSize()
-                
-                if (currentAmount >= cupSize) {
-                    repository.addWaterLog(LocalDate.now(), -cupSize)
-                } else if (currentAmount > 0) {
-                    // If less than a cup but more than 0, just remove what's left
-                    repository.addWaterLog(LocalDate.now(), -currentAmount)
-                }
-                
+                repository.addWaterLog(LocalDate.now(), -repository.getCupSize())
                 updateAllWidgets(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in handleMinusAction", e)
@@ -236,17 +222,6 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
                 views.setProgressBar(R.id.widget_progress, 100, progress, false)
                 
-                // Color the progress bar based on completion
-                val colorResId = when {
-                    progress >= 100 -> R.color.colorSuccess
-                    progress >= 75 -> R.color.accent
-                    progress >= 50 -> R.color.colorWarning
-                    else -> R.color.colorDanger
-                }
-                
-                val colorAttr = getProgressBarColorAttribute(colorResId)
-                views.setInt(R.id.widget_progress, colorAttr, ContextCompat.getColor(context, colorResId))
-                
                 // Get drink count
                 val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
@@ -259,9 +234,5 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(R.id.widget_progress, 100, 0, false)
             views.setTextViewText(R.id.widget_count, "0")
         }
-    }
-    
-    private fun getProgressBarColorAttribute(colorResId: Int): String {
-        return "setProgressTintList"
     }
 } 
