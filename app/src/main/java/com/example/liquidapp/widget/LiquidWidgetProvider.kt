@@ -250,7 +250,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                     progressPercentage < 70 -> Color.parseColor("#FFA500") // Orange
                     else -> Color.GREEN
                 }
-                views.setInt(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(progressBarColor))
+                views.setColorStateList(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(progressBarColor))
 
                 // Get drink count
                 val totalAmountOunces = repository.getTotalOuncesForDate(LocalDate.now()).first()
@@ -262,7 +262,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             Log.e(TAG, "Error in updateWidgetDataSync", e)
             // Set default values if there's an error
             views.setProgressBar(R.id.widget_progress, 100, 0, false)
-            views.setInt(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(Color.GRAY))
+            views.setColorStateList(R.id.widget_progress, "setProgressTintList", ColorStateList.valueOf(Color.GRAY))
             views.setTextViewText(R.id.widget_count, "0.0")
         }
     }
