@@ -223,7 +223,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 views.setProgressBar(R.id.widget_progress, 100, progress, false)
                 
                 // Get drink count
-                val totalAmount = repository.getDailyTotalAmount(LocalDate.now()).first()
+                val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
                 val cupSize = repository.getCupSize()
                 val drinkCount = if (cupSize > 0) (totalAmount / cupSize).toInt() else 0
                 views.setTextViewText(R.id.widget_count, drinkCount.toString())
