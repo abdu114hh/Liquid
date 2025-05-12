@@ -91,20 +91,20 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
-        try {
-            // Update each widget
-            for (widgetId in appWidgetIds) {
+        
+        // Update each widget
+        for (widgetId in appWidgetIds) {
+            try {
                 updateAppWidget(context, appWidgetManager, widgetId)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in onUpdate", e)
-            // Show a fallback widget with error state
-            for (widgetId in appWidgetIds) {
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating widget $widgetId", e)
+                
                 try {
-                    val views = RemoteViews(context.packageName, R.layout.widget_liquid)
-                    views.setTextViewText(R.id.widget_count, "!")
-                    views.setProgressBar(R.id.widget_progress, 100, 0, false)
-                    views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
+                    // Provide a minimal emergency widget if normal update fails
+                    val emergencyViews = RemoteViews(context.packageName, R.layout.widget_liquid)
+                    emergencyViews.setTextViewText(R.id.widget_count, "!")
+                    emergencyViews.setProgressBar(R.id.widget_progress, 100, 0, false)
+                    emergencyViews.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
                     
                     // Set click to open main app
                     val pendingIntent = PendingIntent.getActivity(
@@ -113,11 +113,12 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                         Intent(context, MainActivity::class.java),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    views.setOnClickPendingIntent(R.id.widget_progress, pendingIntent)
+                    emergencyViews.setOnClickPendingIntent(R.id.widget_progress, pendingIntent)
                     
-                    appWidgetManager.updateAppWidget(widgetId, views)
+                    appWidgetManager.updateAppWidget(widgetId, emergencyViews)
+                    Log.d(TAG, "Applied emergency widget for $widgetId")
                 } catch (innerEx: Exception) {
-                    Log.e(TAG, "Fatal widget error", innerEx)
+                    Log.e(TAG, "Fatal widget error, could not even show emergency widget", innerEx)
                 }
             }
         }
@@ -262,39 +263,71 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     private fun updateWidgetDataSync(context: Context, views: RemoteViews) {
         try {
-            // Use runBlocking to ensure we have the data before updating the widget
-            runBlocking {
-                val repository = getRepository(context) ?: return@runBlocking
-                
-                // Get current date progress
-                val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
-                val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
-                val cupSize = repository.getCupSize()
-                
-                Log.d(TAG, "Widget data: progress=$progress%, total=$totalAmount oz, cup=$cupSize oz")
-                
-                // Update UI elements with the fetched data
-                views.setProgressBar(R.id.widget_progress, 100, progress.coerceIn(0, 100), false)
-                
-                // Set progress bar color based on progress
-                val progressColor = when {
-                    progress >= 100 -> COLOR_GREEN
-                    progress >= 50 -> COLOR_ORANGE
-                    else -> COLOR_RED
+            var dataLoaded = false
+            
+            // Try to load data, but have a fallback
+            try {
+                // Use runBlocking to ensure we have the data before updating the widget
+                runBlocking {
+                    val repository = getRepository(context)
+                    if (repository == null) {
+                        Log.e(TAG, "Repository is null, using fallback widget display")
+                    } else {
+                        try {
+                            // Get current date progress
+                            val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
+                            val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
+                            val cupSize = repository.getCupSize()
+                            
+                            Log.d(TAG, "Widget data: progress=$progress%, total=$totalAmount oz, cup=$cupSize oz")
+                            
+                            // Update UI elements with the fetched data
+                            views.setProgressBar(R.id.widget_progress, 100, progress.coerceIn(0, 100), false)
+                            
+                            // Set progress bar color based on progress
+                            val progressColor = when {
+                                progress >= 100 -> COLOR_GREEN
+                                progress >= 50 -> COLOR_ORANGE
+                                else -> COLOR_RED
+                            }
+                            views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(progressColor))
+                            
+                            // Calculate and set drink count exactly as it appears in the app
+                            // Showing the actual number of cups consumed
+                            val drinkCount = if (cupSize > 0) (totalAmount / cupSize).toInt() else 0
+                            views.setTextViewText(R.id.widget_count, drinkCount.toString())
+                            
+                            dataLoaded = true
+                            Log.d(TAG, "Widget data loaded successfully")
+                        } catch (innerEx: Exception) {
+                            Log.e(TAG, "Error loading widget data values", innerEx)
+                        }
+                    }
                 }
-                views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(progressColor))
+            } catch (blockingEx: Exception) {
+                Log.e(TAG, "Critical error in runBlocking", blockingEx)
+            }
+            
+            // If data failed to load, set up a basic functional widget
+            if (!dataLoaded) {
+                Log.d(TAG, "Using fallback widget display")
+                views.setProgressBar(R.id.widget_progress, 100, 0, false)
+                views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
+                views.setTextViewText(R.id.widget_count, "0")
                 
-                // Calculate and set drink count exactly as it appears in the app
-                // Showing the actual number of cups consumed
-                val drinkCount = if (cupSize > 0) (totalAmount / cupSize).toInt() else 0
-                views.setTextViewText(R.id.widget_count, drinkCount.toString())
+                // Make sure buttons still work
+                setUpWidgetButtons(context, views)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in updateWidgetDataSync", e)
-            // Set default values if there's an error
-            views.setProgressBar(R.id.widget_progress, 100, 0, false)
-            views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
-            views.setTextViewText(R.id.widget_count, "0")
+            Log.e(TAG, "Fatal error in updateWidgetDataSync", e)
+            try {
+                // Ultra fallback - just show something rather than "Can't load widget"
+                views.setProgressBar(R.id.widget_progress, 100, 0, false)
+                views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
+                views.setTextViewText(R.id.widget_count, "!")
+            } catch (ex: Exception) {
+                Log.e(TAG, "Could not even set fallback widget", ex)
+            }
         }
     }
     
