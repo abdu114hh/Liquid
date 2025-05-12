@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import android.widget.RemoteViews
+import android.widget.Toast
 import com.example.liquidapp.MainActivity
 import com.example.liquidapp.R
 import com.example.liquidapp.data.repository.HydrationRepository
@@ -51,6 +52,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             hiltEntryPoint.hydrationRepository()
         } catch (e: Exception) {
             Log.e(TAG, "Error getting repository", e)
+            Toast.makeText(context, "Widget error: Unable to access data", Toast.LENGTH_SHORT).show()
             null
         }
     }
@@ -79,6 +81,8 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 
                 intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
                 context.sendBroadcast(intent)
+                
+                Log.d(TAG, "Widget update broadcast sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating widgets", e)
             }
@@ -86,6 +90,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     }
     
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
         try {
             // Update each widget
             for (widgetId in appWidgetIds) {
@@ -93,10 +98,33 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in onUpdate", e)
+            // Show a fallback widget with error state
+            for (widgetId in appWidgetIds) {
+                try {
+                    val views = RemoteViews(context.packageName, R.layout.widget_liquid)
+                    views.setTextViewText(R.id.widget_count, "!")
+                    views.setProgressBar(R.id.widget_progress, 100, 0, false)
+                    views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
+                    
+                    // Set click to open main app
+                    val pendingIntent = PendingIntent.getActivity(
+                        context,
+                        0,
+                        Intent(context, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    views.setOnClickPendingIntent(R.id.widget_progress, pendingIntent)
+                    
+                    appWidgetManager.updateAppWidget(widgetId, views)
+                } catch (innerEx: Exception) {
+                    Log.e(TAG, "Fatal widget error", innerEx)
+                }
+            }
         }
     }
     
     override fun onReceive(context: Context, intent: Intent) {
+        Log.d(TAG, "onReceive: ${intent.action}")
         try {
             super.onReceive(context, intent)
             
@@ -134,6 +162,11 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 if (currentOunces >= cupSize) {
                     repository.addWaterLog(LocalDate.now(), -cupSize)
                     updateAllWidgets(context)
+                } else {
+                    // Show a toast message if trying to go below 0
+                    CoroutineScope(Dispatchers.Main).launch {
+                        Toast.makeText(context, "Already at minimum", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in handleMinusAction", e)
@@ -157,6 +190,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     }
     
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        Log.d(TAG, "Updating widget ID: $appWidgetId")
         try {
             // Create remote views
             val views = RemoteViews(context.packageName, R.layout.widget_liquid)
@@ -167,7 +201,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             // Update progress and count synchronously
             updateWidgetDataSync(context, views)
             
-            // Launch main activity when the widget is clicked
+            // Launch main activity when the progress bar is clicked
             val pendingIntent = PendingIntent.getActivity(
                 context,
                 0,
@@ -178,6 +212,7 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             
             // Update the widget
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            Log.d(TAG, "Widget $appWidgetId updated successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateAppWidget", e)
         }
@@ -227,12 +262,20 @@ class LiquidWidgetProvider : AppWidgetProvider() {
     
     private fun updateWidgetDataSync(context: Context, views: RemoteViews) {
         try {
+            // Use runBlocking to ensure we have the data before updating the widget
             runBlocking {
                 val repository = getRepository(context) ?: return@runBlocking
                 
                 // Get current date progress
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
-                views.setProgressBar(R.id.widget_progress, 100, progress, false)
+                val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
+                val cupSize = repository.getCupSize()
+                val goal = repository.getGoalOunces()
+                
+                Log.d(TAG, "Widget data: progress=$progress%, total=$totalAmount oz, cup=$cupSize oz, goal=$goal oz")
+                
+                // Update UI elements with the fetched data
+                views.setProgressBar(R.id.widget_progress, 100, progress.coerceIn(0, 100), false)
                 
                 // Set progress bar color based on progress
                 val progressColor = when {
@@ -242,9 +285,8 @@ class LiquidWidgetProvider : AppWidgetProvider() {
                 }
                 views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(progressColor))
                 
-                // Get drink count
-                val totalAmount = repository.getTotalOuncesForDate(LocalDate.now()).first()
-                val cupSize = repository.getCupSize()
+                // Calculate and set drink count exactly as it appears in the app
+                // Showing the actual number of cups consumed
                 val drinkCount = if (cupSize > 0) (totalAmount / cupSize).toInt() else 0
                 views.setTextViewText(R.id.widget_count, drinkCount.toString())
             }
@@ -255,5 +297,15 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.widget_progress, "setProgressTintList", Color.parseColor(COLOR_RED))
             views.setTextViewText(R.id.widget_count, "0")
         }
+    }
+    
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        Log.d(TAG, "Widget provider enabled")
+    }
+    
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        Log.d(TAG, "Widget provider disabled")
     }
 } 
