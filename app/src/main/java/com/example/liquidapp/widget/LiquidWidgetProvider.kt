@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 
 private const val TAG = "LiquidWidgetProvider"
@@ -151,8 +152,8 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             // Set up button click intents
             setUpWidgetButtons(context, views)
             
-            // Update progress
-            updateWidgetProgress(context, views, appWidgetManager, appWidgetId)
+            // Update progress synchronously
+            updateWidgetProgressSync(context, views)
             
             // Launch main activity when the widget is clicked
             val pendingIntent = PendingIntent.getActivity(
@@ -212,25 +213,17 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         }
     }
     
-    private fun updateWidgetProgress(context: Context, views: RemoteViews, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                // Get repository
-                val repository = getRepository(context) ?: return@launch
-                
-                // Get current date progress
+    private fun updateWidgetProgressSync(context: Context, views: RemoteViews) {
+        try {
+            runBlocking {
+                val repository = getRepository(context) ?: return@runBlocking
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
-                
-                // Update progress bar
                 views.setProgressBar(R.id.widget_progress, 100, progress, false)
-                
-                // Update widget on the main thread
-                launch(Dispatchers.Main) {
-                    appWidgetManager.updateAppWidget(appWidgetId, views)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in updateWidgetProgress", e)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in updateWidgetProgressSync", e)
+            // Set a default progress if there's an error
+            views.setProgressBar(R.id.widget_progress, 100, 0, false)
         }
     }
 } 
