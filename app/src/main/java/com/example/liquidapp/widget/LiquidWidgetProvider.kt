@@ -152,8 +152,8 @@ class LiquidWidgetProvider : AppWidgetProvider() {
             // Set up button click intents
             setUpWidgetButtons(context, views)
             
-            // Update progress synchronously
-            updateWidgetProgressSync(context, views)
+            // Update progress and count synchronously
+            updateWidgetDataSync(context, views)
             
             // Launch main activity when the widget is clicked
             val pendingIntent = PendingIntent.getActivity(
@@ -213,17 +213,26 @@ class LiquidWidgetProvider : AppWidgetProvider() {
         }
     }
     
-    private fun updateWidgetProgressSync(context: Context, views: RemoteViews) {
+    private fun updateWidgetDataSync(context: Context, views: RemoteViews) {
         try {
             runBlocking {
                 val repository = getRepository(context) ?: return@runBlocking
+                
+                // Get current date progress
                 val progress = repository.getDailyProgressPercentage(LocalDate.now()).first()
                 views.setProgressBar(R.id.widget_progress, 100, progress, false)
+                
+                // Get drink count
+                val totalAmount = repository.getDailyTotalAmount(LocalDate.now()).first()
+                val cupSize = repository.getCupSize()
+                val drinkCount = if (cupSize > 0) (totalAmount / cupSize).toInt() else 0
+                views.setTextViewText(R.id.widget_count, drinkCount.toString())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in updateWidgetProgressSync", e)
-            // Set a default progress if there's an error
+            Log.e(TAG, "Error in updateWidgetDataSync", e)
+            // Set default values if there's an error
             views.setProgressBar(R.id.widget_progress, 100, 0, false)
+            views.setTextViewText(R.id.widget_count, "0")
         }
     }
 } 
