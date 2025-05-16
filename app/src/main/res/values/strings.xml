@@ -1,5 +1,14 @@
 <resources>
-    <string name="app_name">LiquidApp</string>
+    <string name="app_name">LIQUID</string>
+    <string name="title_activity_main">LIQUID</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_history">History</string>
+    <string name="tip_text">Tip: Drink water regularly!</string>
+    <string name="cup_size_label">Cup Size</string>
+    <string name="daily_goal_label">Daily Goal</string>
+    <string name="save_button">Save</string>
+    <string name="hydration_reminder_title">Hydration Reminder</string>
+    <string name="hydration_reminder_text">You\'re a bit behind on your water intake goal today. Time for a drink!</string>
 
     <!-- UI text resources -->
     <string name="date_text">Tuesday 11 June</string>

@@ -25,13 +25,16 @@
         android:id="@+id/menuIcon"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
         android:contentDescription="Menu"
         android:src="@drawable/ic_menu"
         android:tint="@android:color/white"
-        app:layout_constraintBaseline_toBaselineOf="@id/appTitle"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:ignore="UseAppTint" />
 
     <TextView
@@ -59,6 +62,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:clickable="true"
+        android:focusable="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/guidelineTop">
@@ -72,12 +77,11 @@
 
         <ImageView
             android:id="@+id/glassIcon"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_gravity="center"
             android:contentDescription="Water glass icon"
-            android:src="@drawable/ic_water_glass"
-            app:tint="@color/accent" />
+            android:src="@drawable/ic_water_glass_colored" />
     </FrameLayout>
 
     <ProgressBar
@@ -112,7 +116,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="20dp"
-            android:paddingVertical="32dp"> <!-- Increased vertical padding here -->
+            android:paddingVertical="32dp"> 
 
             <Button
                 android:id="@+id/btnQuarter"
@@ -156,7 +160,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Divider line removed -->
+
 
     <TextView
         android:id="@+id/tipText"
